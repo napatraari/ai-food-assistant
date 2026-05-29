@@ -12,12 +12,16 @@ exports.handler = async function(event, context) {
         project: 'AI Food Assistant'
       })
     });
+    var responseText = await response.text();
+    console.log('n8n status:', response.status);
+    console.log('n8n response:', responseText);
     return {
       statusCode: 200,
       headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ok: true, n8nStatus: response.status })
+      body: JSON.stringify({ ok: true, n8nStatus: response.status, n8nBody: responseText })
     };
   } catch (err) {
+    console.log('fetch error:', err.message);
     return {
       statusCode: 200,
       headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' },
