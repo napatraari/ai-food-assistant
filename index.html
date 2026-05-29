@@ -111,10 +111,10 @@
         <div class="mt-6 pt-6 border-t border-orange-400/50">
           <div class="flex items-center justify-between mb-2">
             <span class="text-orange-100 text-xs font-medium">Project Progress</span>
-            <span class="text-white text-xs font-bold">Phase 6 / 10</span>
+            <span class="text-white text-xs font-bold">Phase 7 / 10</span>
           </div>
           <div class="w-full bg-orange-400/40 rounded-full h-2">
-            <div class="bg-white rounded-full h-2 transition-all duration-500" style="width:60%"></div>
+            <div class="bg-white rounded-full h-2 transition-all duration-500" style="width:70%"></div>
           </div>
           <div class="mt-2 flex flex-wrap gap-1">
             <span class="text-xs bg-white text-orange-600 font-semibold px-2 py-0.5 rounded-full">✓ Phase 1</span>
@@ -123,7 +123,7 @@
             <span class="text-xs bg-white text-orange-600 font-semibold px-2 py-0.5 rounded-full">✓ Phase 4</span>
             <span class="text-xs bg-white text-orange-600 font-semibold px-2 py-0.5 rounded-full">✓ Phase 5</span>
             <span class="text-xs bg-white text-orange-600 font-semibold px-2 py-0.5 rounded-full">✓ Phase 6</span>
-            <span class="text-xs bg-orange-400/40 text-orange-100 px-2 py-0.5 rounded-full">Phase 7</span>
+            <span class="text-xs bg-white text-orange-600 font-semibold px-2 py-0.5 rounded-full">✓ Phase 7</span>
             <span class="text-xs bg-orange-400/40 text-orange-100 px-2 py-0.5 rounded-full">Phase 8</span>
             <span class="text-xs bg-orange-400/40 text-orange-100 px-2 py-0.5 rounded-full">Phase 9</span>
             <span class="text-xs bg-orange-400/40 text-orange-100 px-2 py-0.5 rounded-full">Phase 10</span>
@@ -1387,7 +1387,7 @@
   </main>
 
   <footer class="max-w-5xl mx-auto px-4 py-8 text-center text-xs text-slate-400">
-    <p>AI Food Assistant · Phase 1–9 Complete · อโศก 37 ร้าน · Scoring: 6 criteria 100 pts</p>
+    <p>AI Food Assistant · Phase 1–7 Complete · อโศก 37 ร้าน · Scoring: 6 criteria 100 pts</p>
     <p class="mt-1">Tools: Apify · Google Sheets · Claude AI · Gemini API · n8n Cloud · Vercel</p>
     <p class="mt-1">Submission Deadline: June 8, 2026 · napatra.ari@gmail.com</p>
   </footer>
@@ -1483,10 +1483,10 @@
         <div class="mt-6 pt-6 border-t border-orange-400/50">
           <div class="flex items-center justify-between mb-2">
             <span class="text-orange-100 text-xs font-medium">Project Progress</span>
-            <span class="text-white text-xs font-bold">Phase 6 / 10</span>
+            <span class="text-white text-xs font-bold">Phase 7 / 10</span>
           </div>
           <div class="w-full bg-orange-400/40 rounded-full h-2">
-            <div class="bg-white rounded-full h-2 transition-all duration-500" style="width:60%"></div>
+            <div class="bg-white rounded-full h-2 transition-all duration-500" style="width:70%"></div>
           </div>
           <div class="mt-2 flex flex-wrap gap-1">
             <span class="text-xs bg-white text-orange-600 font-semibold px-2 py-0.5 rounded-full">✓ Phase 1</span>
@@ -1495,7 +1495,7 @@
             <span class="text-xs bg-white text-orange-600 font-semibold px-2 py-0.5 rounded-full">✓ Phase 4</span>
             <span class="text-xs bg-white text-orange-600 font-semibold px-2 py-0.5 rounded-full">✓ Phase 5</span>
             <span class="text-xs bg-white text-orange-600 font-semibold px-2 py-0.5 rounded-full">✓ Phase 6</span>
-            <span class="text-xs bg-orange-400/40 text-orange-100 px-2 py-0.5 rounded-full">Phase 7</span>
+            <span class="text-xs bg-white text-orange-600 font-semibold px-2 py-0.5 rounded-full">✓ Phase 7</span>
             <span class="text-xs bg-orange-400/40 text-orange-100 px-2 py-0.5 rounded-full">Phase 8</span>
             <span class="text-xs bg-orange-400/40 text-orange-100 px-2 py-0.5 rounded-full">Phase 9</span>
             <span class="text-xs bg-orange-400/40 text-orange-100 px-2 py-0.5 rounded-full">Phase 10</span>
@@ -2759,7 +2759,7 @@
   </main>
 
   <footer class="max-w-5xl mx-auto px-4 py-8 text-center text-xs text-slate-400">
-    <p>AI Food Assistant · Phase 1–9 Complete · อโศก 37 ร้าน · Scoring: 6 criteria 100 pts</p>
+    <p>AI Food Assistant · Phase 1–7 Complete · อโศก 37 ร้าน · Scoring: 6 criteria 100 pts</p>
     <p class="mt-1">Tools: Apify · Google Sheets · Claude AI · Gemini API · n8n Cloud · Vercel</p>
     <p class="mt-1">Submission Deadline: June 8, 2026 · napatra.ari@gmail.com</p>
   </footer>
@@ -2866,12 +2866,22 @@
       }
       container.innerHTML = html;
 
-      // Show shared AI summary from first restaurant's ai_summary or dedicated field
+      // Show shared AI summary from first restaurant's ai_summary
       var firstSummary = restaurants[0] && restaurants[0].ai_summary;
       if (firstSummary && firstSummary.trim()) {
         var el = document.getElementById('ai-summary-text');
         var blk = document.getElementById('ai-summary-block');
-        if (el) el.textContent = firstSummary;
+        if (el) {
+          // Convert \n to <br> and **text** to <strong>text</strong>
+          var html = firstSummary
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+            .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+            .replace(/\\n\\n/g, '<br><br>')
+            .replace(/\\n/g, '<br>')
+            .replace(/\n\n/g, '<br><br>')
+            .replace(/\n/g, '<br>');
+          el.innerHTML = html;
+        }
         if (blk) blk.classList.remove('hidden');
       }
     }
