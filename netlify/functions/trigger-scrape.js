@@ -1,5 +1,5 @@
 exports.handler = async function(event, context) {
-  const N8N_WEBHOOK = 'https://n8n-external.exservice.io/webhook-test/food-assistant-scrape';
+  const N8N_WEBHOOK = 'https://n8n-external.exservice.io/webhook/food-assistant-scrape';
 
   try {
     const response = await fetch(N8N_WEBHOOK, {
