@@ -1199,8 +1199,22 @@
       document.querySelectorAll('.area-btn').forEach(function(b) { b.classList.remove('active'); });
       var btn = document.getElementById('area-' + area);
       if (btn) btn.classList.add('active');
-      loadSheetsData();
-      loadAreaData();
+
+      // Show loading overlay for 3 seconds
+      var containers = ['top3-dynamic', 'top10-container', 'comparison-dynamic'];
+      var loadingHTML = '<div class="col-span-3 flex flex-col items-center justify-center py-16 gap-4">'
+        + '<div style="width:48px;height:48px;border:4px solid #fed7aa;border-top-color:#f97316;border-radius:50%;animation:spin 0.8s linear infinite;"></div>'
+        + '<p class="text-slate-500 text-sm font-medium">กำลังโหลดข้อมูลย่าน...</p>'
+        + '</div>';
+      containers.forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) el.innerHTML = loadingHTML;
+      });
+
+      setTimeout(function() {
+        loadSheetsData();
+        loadAreaData();
+      }, 3000);
     }
 
     async function loadAreaData() {
@@ -1333,6 +1347,9 @@
         }).join('')+'</tbody></table></div>';
     }
 
+    var scrapeCountdownInterval = null;
+    var scrapePollInterval = null;
+
     async function triggerScrape() {
       var btn = document.getElementById('scrapeBtn');
       var statusDiv = document.getElementById('scrape-status');
@@ -1342,6 +1359,8 @@
       btn.disabled = true;
       btn.innerHTML = '<svg class="w-3.5 h-3.5 spin" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"/></svg> กำลัง Scrape...';
       statusDiv.classList.remove('hidden');
+      statusDiv.className = 'mb-5 bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm';
+      document.getElementById('scrape-icon').classList.add('spin');
       msg.textContent = 'กำลัง trigger n8n workflow สำหรับย่าน ' + currentArea + '...';
 
       try {
@@ -1351,16 +1370,95 @@
           body: JSON.stringify({ area: currentArea })
         });
         if (res.ok) {
-          msg.textContent = '✅ Scrape triggered! ข้อมูลจะอัปเดตใน 15–30 นาที';
-          document.getElementById('scrape-icon').classList.remove('spin');
+          startScrapeCountdown();
         } else {
           throw new Error('HTTP ' + res.status);
         }
       } catch (err) {
         msg.textContent = '⚠️ ไม่สามารถ trigger ได้: ' + err.message;
         document.getElementById('scrape-icon').classList.remove('spin');
+        btn.disabled = false;
+        btn.innerHTML = '<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"/></svg> Scrape ใหม่';
       }
+    }
 
+    function startScrapeCountdown() {
+      var totalSeconds = 10 * 60; // 10 นาที
+      var remaining = totalSeconds;
+      var msg = document.getElementById('scrape-msg');
+      var statusDiv = document.getElementById('scrape-status');
+      var prevLastUpdated = areaData.length > 0 ? (areaData[0].last_updated || '') : '';
+
+      if (scrapeCountdownInterval) clearInterval(scrapeCountdownInterval);
+      if (scrapePollInterval) clearInterval(scrapePollInterval);
+
+      // Countdown ทุก 1 วินาที
+      scrapeCountdownInterval = setInterval(function() {
+        remaining--;
+        var mins = Math.floor(remaining / 60);
+        var secs = remaining % 60;
+        var timeStr = (mins < 10 ? '0' : '') + mins + ':' + (secs < 10 ? '0' : '') + secs;
+        msg.innerHTML = '⏳ Scrape triggered! กำลังประมวลผล — รออีกประมาณ <strong style="font-size:1.1em;color:#c2410c;">' + timeStr + '</strong>';
+
+        if (remaining <= 0) {
+          clearInterval(scrapeCountdownInterval);
+          clearInterval(scrapePollInterval);
+          msg.innerHTML = '⚠️ ใช้เวลานานกว่าปกติ กรุณารีเฟรชหน้าเว็บด้วยตนเอง';
+          document.getElementById('scrape-icon').classList.remove('spin');
+          resetScrapeBtn();
+        }
+      }, 1000);
+
+      // Poll ทุก 30 วินาที เพื่อตรวจว่าข้อมูลอัปเดตหรือยัง
+      scrapePollInterval = setInterval(async function() {
+        try {
+          var url = DATA_URLS[currentArea] + '&t=' + Date.now();
+          var res = await fetch(url);
+          if (!res.ok) return;
+          var text = await res.text();
+          var lines = text.trim().split('\n').filter(function(l) { return l.trim(); });
+          if (lines.length < 2) return;
+          var headers = parseCSVRow(lines[0]).map(function(h) { return h.replace(/^"|"$/g,'').trim(); });
+          var vals = parseCSVRow(lines[1]);
+          var obj = {};
+          headers.forEach(function(h, idx) { obj[h] = (vals[idx]||'').replace(/^"|"$/g,'').trim(); });
+
+          var newLastUpdated = obj.last_updated || '';
+          if (newLastUpdated && newLastUpdated !== prevLastUpdated) {
+            // ข้อมูลอัปเดตแล้ว!
+            clearInterval(scrapeCountdownInterval);
+            clearInterval(scrapePollInterval);
+
+            // Reload data อัตโนมัติ
+            loadSheetsData();
+            loadAreaData();
+
+            // แสดง notification สีเขียว
+            var now = new Date();
+            var timeNow = now.toLocaleString('th-TH', {
+              timeZone:'Asia/Bangkok', year:'numeric', month:'short',
+              day:'numeric', hour:'2-digit', minute:'2-digit'
+            });
+            statusDiv.className = 'mb-5 bg-green-50 border border-green-300 rounded-xl p-4 text-sm';
+            document.getElementById('scrape-icon').classList.remove('spin');
+            document.getElementById('scrape-icon').innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>';
+            msg.innerHTML = '✅ <strong>ข้อมูลอัปเดตแล้ว!</strong> เมื่อ ' + timeNow;
+
+            resetScrapeBtn();
+
+            // ซ่อน notification หลัง 15 วินาที
+            setTimeout(function() {
+              statusDiv.classList.add('hidden');
+              statusDiv.className = 'hidden mb-5 bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm';
+            }, 15000);
+          }
+        } catch(e) {}
+      }, 30000);
+    }
+
+    function resetScrapeBtn() {
+      var btn = document.getElementById('scrapeBtn');
+      if (!btn) return;
       btn.disabled = false;
       btn.innerHTML = '<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"/></svg> Scrape ใหม่';
     }
