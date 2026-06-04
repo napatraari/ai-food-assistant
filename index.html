@@ -77,19 +77,38 @@
       color: white;
       padding: 16px 20px; border-radius: 14px;
       box-shadow: 0 10px 25px rgba(16,185,129,0.35), 0 4px 10px rgba(0,0,0,0.1);
-      display: flex; align-items: center; gap: 12px;
+      display: flex; align-items: flex-start; gap: 12px;
       animation: toast-slide-in 0.4s cubic-bezier(0.16, 1, 0.3, 1);
       pointer-events: auto;
+      position: relative;
     }
     .toast.hide { animation: toast-slide-out 0.4s cubic-bezier(0.7, 0, 0.84, 0) forwards; }
     .toast-icon {
       width: 40px; height: 40px; border-radius: 50%;
       background: rgba(255,255,255,0.25);
       display: flex; align-items: center; justify-content: center;
-      flex-shrink: 0;
+      flex-shrink: 0; margin-top: 2px;
     }
+    .toast-body { flex: 1; min-width: 0; }
     .toast-title { font-weight: 700; font-size: 14px; margin-bottom: 2px; }
-    .toast-msg   { font-size: 12px; opacity: 0.9; }
+    .toast-msg   { font-size: 12px; opacity: 0.9; line-height: 1.4; }
+    .toast-close {
+      position: absolute; top: 8px; right: 10px;
+      background: transparent; border: none; color: rgba(255,255,255,0.7);
+      cursor: pointer; padding: 2px 6px; font-size: 16px; line-height: 1;
+      border-radius: 4px; transition: background 0.15s;
+    }
+    .toast-close:hover { background: rgba(255,255,255,0.2); color: white; }
+    .toast-action {
+      display: inline-flex; align-items: center; gap: 6px;
+      margin-top: 10px;
+      background: white; color: #059669;
+      font-weight: 700; font-size: 12px;
+      padding: 7px 14px; border-radius: 8px; border: none;
+      cursor: pointer; transition: transform 0.15s, box-shadow 0.15s;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    .toast-action:hover { transform: translateY(-1px); box-shadow: 0 4px 10px rgba(0,0,0,0.15); }
     /* ป้องกัน scroll anchoring เด้งหน้า — ปิดทั้งหน้าระหว่างเปลี่ยนย่าน */
     html, body { overflow-anchor: none; }
     #top10-container, #top3-dynamic, #comparison-dynamic, #live-cards {
@@ -1649,26 +1668,58 @@
     var scrapePollInterval = null;
 
     // ── Toast notification ──
-    function showToast(title, msg) {
+    // options: { actionLabel, onAction, duration } (ทุก field optional)
+    function showToast(title, msg, options) {
+      options = options || {};
+      var duration = options.duration || 5000;
       var container = document.getElementById('toast-container');
       if (!container) return;
+
       var toast = document.createElement('div');
       toast.className = 'toast';
-      toast.innerHTML =
+
+      var iconHtml =
           '<div class="toast-icon">'
         + '<svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="white">'
         + '<path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/>'
-        + '</svg></div>'
-        + '<div>'
+        + '</svg></div>';
+
+      var bodyHtml = '<div class="toast-body">'
         + '<div class="toast-title">' + title + '</div>'
-        + (msg ? '<div class="toast-msg">' + msg + '</div>' : '')
-        + '</div>';
+        + (msg ? '<div class="toast-msg">' + msg + '</div>' : '');
+      if (options.actionLabel) {
+        bodyHtml += '<button class="toast-action" type="button">'
+          + options.actionLabel
+          + '<svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor">'
+          + '<path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg>'
+          + '</button>';
+      }
+      bodyHtml += '</div>';
+
+      var closeHtml = '<button class="toast-close" type="button" aria-label="ปิด">×</button>';
+
+      toast.innerHTML = iconHtml + bodyHtml + closeHtml;
       container.appendChild(toast);
-      // ซ่อนหลัง 5 วินาที
-      setTimeout(function() {
+
+      // ปุ่มปิด
+      var dismissTimer = null;
+      var dismiss = function() {
+        if (dismissTimer) { clearTimeout(dismissTimer); dismissTimer = null; }
         toast.classList.add('hide');
-        setTimeout(function() { toast.remove(); }, 400);
-      }, 5000);
+        setTimeout(function() { if (toast.parentNode) toast.remove(); }, 400);
+      };
+      toast.querySelector('.toast-close').addEventListener('click', dismiss);
+
+      // ปุ่ม action
+      if (options.actionLabel && typeof options.onAction === 'function') {
+        toast.querySelector('.toast-action').addEventListener('click', function() {
+          options.onAction();
+          dismiss();
+        });
+      }
+
+      // Auto-dismiss
+      dismissTimer = setTimeout(dismiss, duration);
     }
 
     async function triggerScrape() {
@@ -1677,21 +1728,41 @@
       var msg = document.getElementById('scrape-msg');
       if (!btn || !statusDiv || !msg) return;
 
+      // ── ล็อกย่านที่กำลัง scrape ไว้ตั้งแต่กดปุ่ม ──
+      var scrapingArea = currentArea;
+
       btn.disabled = true;
       btn.innerHTML = '<svg class="w-3.5 h-3.5 spin" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"/></svg> กำลัง Scrape...';
       statusDiv.classList.remove('hidden');
       statusDiv.className = 'mb-5 bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm';
       document.getElementById('scrape-icon').classList.add('spin');
-      msg.textContent = 'กำลัง trigger n8n workflow สำหรับย่าน ' + currentArea + '...';
+      msg.textContent = 'กำลัง trigger n8n workflow สำหรับย่าน ' + scrapingArea + '...';
+
+      // อ่าน last_updated ของ scrapingArea ก่อนเริ่ม (สด ๆ จาก sheet เพื่อความถูกต้อง)
+      var prevLastUpdated = '';
+      try {
+        var preRes = await fetch(LIVE_URLS[scrapingArea] + '&t=' + Date.now());
+        if (preRes.ok) {
+          var preText = await preRes.text();
+          var preLines = preText.trim().split('\n').filter(function(l) { return l.trim(); });
+          if (preLines.length >= 2) {
+            var preHeaders = parseCSVRow(preLines[0]).map(function(h) { return h.replace(/^"|"$/g,'').trim(); });
+            var preVals = parseCSVRow(preLines[1]);
+            var preObj = {};
+            preHeaders.forEach(function(h, idx) { preObj[h] = (preVals[idx]||'').replace(/^"|"$/g,'').trim(); });
+            prevLastUpdated = preObj.last_updated || '';
+          }
+        }
+      } catch(e) {}
 
       try {
         var res = await fetch(N8N_SCRAPE_WEBHOOK, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ area: currentArea })
+          body: JSON.stringify({ area: scrapingArea })
         });
         if (res.ok) {
-          startScrapeCountdown();
+          startScrapeCountdown(scrapingArea, prevLastUpdated);
         } else {
           throw new Error('HTTP ' + res.status);
         }
@@ -1703,13 +1774,12 @@
       }
     }
 
-    function startScrapeCountdown() {
+    function startScrapeCountdown(scrapingArea, prevLastUpdated) {
+      // ── scrapingArea ผูกไว้ตั้งแต่กดปุ่ม — ไม่เปลี่ยนตามที่ user คลิกย่านอื่น ──
       var totalSeconds = 10 * 60; // 10 นาที
       var remaining = totalSeconds;
       var msg = document.getElementById('scrape-msg');
       var statusDiv = document.getElementById('scrape-status');
-      // อ่าน last_updated จาก live_[area]_v2 (data_[area] ไม่มี column นี้)
-      var prevLastUpdated = restaurants.length > 0 ? (restaurants[0].last_updated || '') : '';
 
       if (scrapeCountdownInterval) clearInterval(scrapeCountdownInterval);
       if (scrapePollInterval) clearInterval(scrapePollInterval);
@@ -1731,11 +1801,19 @@
         }
       }, 1000);
 
+      // ── Grace period: รอ 60 วินาทีก่อนเริ่ม poll ──
+      // n8n ปกติใช้ 4-5 นาที จึงไม่กระทบ — ป้องกันการ detect ค่าเก่าผิดพลาด
+      var GRACE_PERIOD_MS = 60 * 1000;
+
+      // ── Baseline flag: ถ้า prevLastUpdated ว่างตอนเริ่ม จะใช้ค่า poll แรกเป็น baseline ──
+      var needsBaseline = !prevLastUpdated;
+
       // Poll ทุก 30 วินาที เพื่อตรวจว่าข้อมูลอัปเดตหรือยัง
       // ใช้ LIVE_URLS เพราะ live_[area]_v2 มี column last_updated ที่ n8n เขียนทุกครั้ง
-      scrapePollInterval = setInterval(async function() {
+      var pollFn = async function() {
         try {
-          var url = LIVE_URLS[currentArea] + '&t=' + Date.now();
+          // Poll sheet ของ scrapingArea เสมอ — ไม่เปลี่ยนตาม currentArea
+          var url = LIVE_URLS[scrapingArea] + '&t=' + Date.now();
           var res = await fetch(url);
           if (!res.ok) return;
           var text = await res.text();
@@ -1747,14 +1825,27 @@
           headers.forEach(function(h, idx) { obj[h] = (vals[idx]||'').replace(/^"|"$/g,'').trim(); });
 
           var newLastUpdated = obj.last_updated || '';
+
+          // ── ถ้ายังไม่มี baseline ใช้ poll แรกเป็น baseline (ไม่ trigger) ──
+          if (needsBaseline) {
+            if (newLastUpdated) {
+              prevLastUpdated = newLastUpdated;
+              needsBaseline = false;
+              console.log('[scrape] baseline set:', prevLastUpdated);
+            }
+            return;
+          }
+
           if (newLastUpdated && newLastUpdated !== prevLastUpdated) {
-            // ข้อมูลอัปเดตแล้ว!
+            // ข้อมูลของ scrapingArea อัปเดตแล้ว!
             clearInterval(scrapeCountdownInterval);
             clearInterval(scrapePollInterval);
 
-            // Reload data อัตโนมัติ
-            loadSheetsData();
-            loadAreaData();
+            // Reload data อัตโนมัติ — เฉพาะถ้า user ยังดูย่านที่ scrape อยู่
+            if (currentArea === scrapingArea) {
+              loadSheetsData();
+              loadAreaData();
+            }
 
             // แสดง notification สีเขียว
             var now = new Date();
@@ -1762,14 +1853,67 @@
               timeZone:'Asia/Bangkok', year:'numeric', month:'short',
               day:'numeric', hour:'2-digit', minute:'2-digit'
             });
-            statusDiv.className = 'mb-5 bg-green-50 border border-green-300 rounded-xl p-4 text-sm';
-            document.getElementById('scrape-icon').classList.remove('spin');
-            document.getElementById('scrape-icon').innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>';
-            msg.innerHTML = '✅ <strong>ข้อมูลอัปเดตแล้ว!</strong> เมื่อ ' + timeNow;
-
-            // Toast notification มุมขวาบน
             var areaLabels = { asoke:'อโศก', thonglor:'ทองหล่อ', ari:'อารีย์', siam:'สยาม', phromphong:'พร้อมพงษ์' };
-            showToast('อัปเดตข้อมูลเรียบร้อย', 'ย่าน ' + (areaLabels[currentArea] || currentArea) + ' · ' + timeNow);
+            var scrapingAreaName = areaLabels[scrapingArea] || scrapingArea;
+
+            // อัปเดต status box เฉพาะกรณีอยู่หน้าเดียวกับ scrapingArea
+            if (currentArea === scrapingArea) {
+              statusDiv.className = 'mb-5 bg-green-50 border border-green-300 rounded-xl p-4 text-sm';
+              document.getElementById('scrape-icon').classList.remove('spin');
+              document.getElementById('scrape-icon').innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>';
+              msg.innerHTML = '✅ <strong>ข้อมูลอัปเดตแล้ว!</strong> เมื่อ ' + timeNow;
+            }
+
+            // ── ตรวจว่า user เห็น Live Top 3 dashboard อยู่หรือไม่ ──
+            var dashEl = document.getElementById('live-dashboard');
+            var dashVisible = false;
+            if (dashEl) {
+              var rect = dashEl.getBoundingClientRect();
+              var vh = window.innerHeight || document.documentElement.clientHeight;
+              // ถือว่า "เห็น" เมื่อมีส่วนของ dashboard อยู่ในจอ อย่างน้อยครึ่งหนึ่งของจอ
+              dashVisible = rect.top < vh * 0.6 && rect.bottom > vh * 0.2;
+            }
+
+            // ── Smooth scroll ไปที่ Live Top 3 dashboard ──
+            var scrollToDashboard = function() {
+              var el = document.getElementById('live-dashboard');
+              if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            };
+
+            // Toast notification มุมขวาบน — ใช้ scrapingArea ที่ผูกไว้
+            if (currentArea === scrapingArea && dashVisible) {
+              // รูปแบบ A: user อยู่ย่านที่ scrape + เห็น dashboard อยู่ — แค่ยืนยัน
+              showToast(
+                'อัปเดตข้อมูลเรียบร้อย',
+                'ย่าน ' + scrapingAreaName + ' · ' + timeNow
+              );
+            } else if (currentArea === scrapingArea && !dashVisible) {
+              // รูปแบบ B-1: user อยู่ย่านถูกแล้ว แต่เลื่อนไป section อื่น — scroll กลับมา
+              showToast(
+                'อัปเดตข้อมูลย่าน ' + scrapingAreaName + ' เรียบร้อย',
+                'กดเพื่อกลับไปดูข้อมูลย่าน ' + scrapingAreaName,
+                {
+                  actionLabel: 'ดูย่าน ' + scrapingAreaName,
+                  onAction: scrollToDashboard,
+                  duration: 10000
+                }
+              );
+            } else {
+              // รูปแบบ B-2: user ไปย่านอื่น — เปลี่ยนย่านกลับมา + scroll
+              showToast(
+                'อัปเดตข้อมูลย่าน ' + scrapingAreaName + ' เรียบร้อย',
+                'กดเพื่อกลับไปดูข้อมูลย่าน ' + scrapingAreaName,
+                {
+                  actionLabel: 'ดูย่าน ' + scrapingAreaName,
+                  onAction: function() {
+                    selectArea(scrapingArea);
+                    // scroll หลัง DOM mutate เล็กน้อย เพื่อให้นุ่ม
+                    setTimeout(scrollToDashboard, 100);
+                  },
+                  duration: 10000
+                }
+              );
+            }
 
             resetScrapeBtn();
 
@@ -1780,7 +1924,13 @@
             }, 15000);
           }
         } catch(e) {}
-      }, 30000);
+      };
+
+      // ── เริ่ม poll หลัง grace period (60 วิ) แล้วทำซ้ำทุก 30 วิ ──
+      setTimeout(function() {
+        pollFn(); // poll ทันทีหลังหมด grace period
+        scrapePollInterval = setInterval(pollFn, 30000);
+      }, GRACE_PERIOD_MS);
     }
 
     function resetScrapeBtn() {
