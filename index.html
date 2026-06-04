@@ -57,6 +57,39 @@
       display:inline-block; width:8px; height:8px; border-radius:50%;
       background:#f97316; animation: pulse-bounce 1.2s infinite ease-in-out;
     }
+    /* Toast notification */
+    @keyframes toast-slide-in {
+      from { transform: translateX(120%); opacity: 0; }
+      to   { transform: translateX(0);     opacity: 1; }
+    }
+    @keyframes toast-slide-out {
+      from { transform: translateX(0);     opacity: 1; }
+      to   { transform: translateX(120%); opacity: 0; }
+    }
+    #toast-container {
+      position: fixed; top: 20px; right: 20px; z-index: 9999;
+      display: flex; flex-direction: column; gap: 10px;
+      pointer-events: none;
+    }
+    .toast {
+      min-width: 320px; max-width: 420px;
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: white;
+      padding: 16px 20px; border-radius: 14px;
+      box-shadow: 0 10px 25px rgba(16,185,129,0.35), 0 4px 10px rgba(0,0,0,0.1);
+      display: flex; align-items: center; gap: 12px;
+      animation: toast-slide-in 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      pointer-events: auto;
+    }
+    .toast.hide { animation: toast-slide-out 0.4s cubic-bezier(0.7, 0, 0.84, 0) forwards; }
+    .toast-icon {
+      width: 40px; height: 40px; border-radius: 50%;
+      background: rgba(255,255,255,0.25);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .toast-title { font-weight: 700; font-size: 14px; margin-bottom: 2px; }
+    .toast-msg   { font-size: 12px; opacity: 0.9; }
     /* ป้องกัน scroll anchoring เด้งหน้า — ปิดทั้งหน้าระหว่างเปลี่ยนย่าน */
     html, body { overflow-anchor: none; }
     #top10-container, #top3-dynamic, #comparison-dynamic, #live-cards {
@@ -65,6 +98,9 @@
   </style>
 </head>
 <body class="bg-slate-50 text-slate-900 antialiased">
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container"></div>
 
   <!-- ═══════════════════════════════════════════
        STICKY NAV
@@ -795,7 +831,6 @@
             </svg>
             <span id="scrape-msg" class="font-medium">กำลัง scrape ข้อมูลใหม่จาก Google Maps...</span>
           </div>
-          <p class="text-xs text-amber-600 mt-1 ml-6">ใช้เวลาประมาณ 15–30 นาที กรุณารีเฟรชหน้าเว็บหลังจากนั้นเพื่อดูข้อมูลใหม่</p>
         </div>
 
         <div id="live-cards" class="grid grid-cols-1 md:grid-cols-3 gap-5">
@@ -1613,6 +1648,29 @@
     var scrapeCountdownInterval = null;
     var scrapePollInterval = null;
 
+    // ── Toast notification ──
+    function showToast(title, msg) {
+      var container = document.getElementById('toast-container');
+      if (!container) return;
+      var toast = document.createElement('div');
+      toast.className = 'toast';
+      toast.innerHTML =
+          '<div class="toast-icon">'
+        + '<svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="white">'
+        + '<path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/>'
+        + '</svg></div>'
+        + '<div>'
+        + '<div class="toast-title">' + title + '</div>'
+        + (msg ? '<div class="toast-msg">' + msg + '</div>' : '')
+        + '</div>';
+      container.appendChild(toast);
+      // ซ่อนหลัง 5 วินาที
+      setTimeout(function() {
+        toast.classList.add('hide');
+        setTimeout(function() { toast.remove(); }, 400);
+      }, 5000);
+    }
+
     async function triggerScrape() {
       var btn = document.getElementById('scrapeBtn');
       var statusDiv = document.getElementById('scrape-status');
@@ -1650,7 +1708,8 @@
       var remaining = totalSeconds;
       var msg = document.getElementById('scrape-msg');
       var statusDiv = document.getElementById('scrape-status');
-      var prevLastUpdated = areaData.length > 0 ? (areaData[0].last_updated || '') : '';
+      // อ่าน last_updated จาก live_[area]_v2 (data_[area] ไม่มี column นี้)
+      var prevLastUpdated = restaurants.length > 0 ? (restaurants[0].last_updated || '') : '';
 
       if (scrapeCountdownInterval) clearInterval(scrapeCountdownInterval);
       if (scrapePollInterval) clearInterval(scrapePollInterval);
@@ -1673,9 +1732,10 @@
       }, 1000);
 
       // Poll ทุก 30 วินาที เพื่อตรวจว่าข้อมูลอัปเดตหรือยัง
+      // ใช้ LIVE_URLS เพราะ live_[area]_v2 มี column last_updated ที่ n8n เขียนทุกครั้ง
       scrapePollInterval = setInterval(async function() {
         try {
-          var url = DATA_URLS[currentArea] + '&t=' + Date.now();
+          var url = LIVE_URLS[currentArea] + '&t=' + Date.now();
           var res = await fetch(url);
           if (!res.ok) return;
           var text = await res.text();
@@ -1706,6 +1766,10 @@
             document.getElementById('scrape-icon').classList.remove('spin');
             document.getElementById('scrape-icon').innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>';
             msg.innerHTML = '✅ <strong>ข้อมูลอัปเดตแล้ว!</strong> เมื่อ ' + timeNow;
+
+            // Toast notification มุมขวาบน
+            var areaLabels = { asoke:'อโศก', thonglor:'ทองหล่อ', ari:'อารีย์', siam:'สยาม', phromphong:'พร้อมพงษ์' };
+            showToast('อัปเดตข้อมูลเรียบร้อย', 'ย่าน ' + (areaLabels[currentArea] || currentArea) + ' · ' + timeNow);
 
             resetScrapeBtn();
 
