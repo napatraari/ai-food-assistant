@@ -1856,13 +1856,11 @@
             var areaLabels = { asoke:'อโศก', thonglor:'ทองหล่อ', ari:'อารีย์', siam:'สยาม', phromphong:'พร้อมพงษ์' };
             var scrapingAreaName = areaLabels[scrapingArea] || scrapingArea;
 
-            // อัปเดต status box เฉพาะกรณีอยู่หน้าเดียวกับ scrapingArea
-            if (currentArea === scrapingArea) {
-              statusDiv.className = 'mb-5 bg-green-50 border border-green-300 rounded-xl p-4 text-sm';
-              document.getElementById('scrape-icon').classList.remove('spin');
-              document.getElementById('scrape-icon').innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>';
-              msg.innerHTML = '✅ <strong>ข้อมูลอัปเดตแล้ว!</strong> เมื่อ ' + timeNow;
-            }
+            // อัปเดต status box → เปลี่ยนเป็นเขียวเสมอ ไม่ว่าผู้ใช้จะอยู่ย่านไหน
+            statusDiv.className = 'mb-5 bg-green-50 border border-green-300 rounded-xl p-4 text-sm';
+            document.getElementById('scrape-icon').classList.remove('spin');
+            document.getElementById('scrape-icon').innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>';
+            msg.innerHTML = '✅ <strong>ข้อมูลอัปเดตเรียบร้อย</strong> — ย่าน ' + scrapingAreaName;
 
             // ── ตรวจว่า user เห็น Live Top 3 dashboard อยู่หรือไม่ ──
             var dashEl = document.getElementById('live-dashboard');
@@ -1917,11 +1915,11 @@
 
             resetScrapeBtn();
 
-            // ซ่อน notification หลัง 15 วินาที
+            // ซ่อน notification หลัง 5 วินาที
             setTimeout(function() {
               statusDiv.classList.add('hidden');
               statusDiv.className = 'hidden mb-5 bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm';
-            }, 15000);
+            }, 5000);
           }
         } catch(e) {}
       };
