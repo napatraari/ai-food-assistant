@@ -254,7 +254,7 @@
             <div class="text-xs text-slate-500 mt-0.5">ร้านในระบบ</div>
           </div>
           <div class="bg-orange-50 border border-orange-200 rounded-xl p-3 text-center">
-            <div class="text-2xl font-extrabold text-orange-500">2</div>
+            <div class="text-2xl font-extrabold text-orange-500">1</div>
             <div class="text-xs text-slate-500 mt-0.5">แหล่งข้อมูล</div>
           </div>
         </div>
@@ -309,7 +309,7 @@
           <div class="space-y-2">
             <div class="flex items-center gap-3 p-2.5 rounded-lg hover:bg-slate-50 transition-colors">
               <span class="text-xs font-bold text-orange-400 w-5 shrink-0">01</span>
-              <span class="text-sm font-bold text-slate-700">เก็บข้อมูลร้านอาหารจริงด้วย Apify (Google Maps) + Browse AI (Eatigo)</span>
+              <span class="text-sm font-bold text-slate-700">เก็บข้อมูลร้านอาหารจริงด้วย Apify (Google Maps)</span>
             </div>
             <div class="flex items-center gap-3 p-2.5 rounded-lg hover:bg-slate-50 transition-colors">
               <span class="text-xs font-bold text-orange-400 w-5 shrink-0">02</span>
@@ -329,7 +329,7 @@
             </div>
             <div class="flex items-center gap-3 p-2.5 rounded-lg hover:bg-slate-50 transition-colors">
               <span class="text-xs font-bold text-orange-400 w-5 shrink-0">06</span>
-              <span class="text-sm font-bold text-slate-700">Automate ด้วย n8n — Webhook → Apify + Browse AI → Gemini AI → Google Sheets → Email</span>
+              <span class="text-sm font-bold text-slate-700">Automate ด้วย n8n — Webhook → Apify → Gemini AI → Google Sheets → Email</span>
             </div>
             <div class="flex items-center gap-3 p-2.5 rounded-lg hover:bg-slate-50 transition-colors">
               <span class="text-xs font-bold text-orange-400 w-5 shrink-0">07</span>
@@ -387,7 +387,7 @@
                 <div class="text-xs font-bold uppercase tracking-wide mb-1">Phase 3</div>
                 <div class="text-sm font-semibold">Data<br/>Collection</div>
               </div>
-              <div class="text-xs text-slate-400 text-center">Apify / Browse AI</div>
+              <div class="text-xs text-slate-500 text-center">Apify (Google Maps)</div>
             </div>
             <div class="flex items-center text-slate-300 text-xl font-thin self-center pb-5">›</div>
 
@@ -417,7 +417,7 @@
                 <div class="text-xs font-bold uppercase tracking-wide mb-1">Phase 7</div>
                 <div class="text-sm font-semibold">Automation</div>
               </div>
-              <div class="text-xs text-slate-500 text-center">n8n + Apify + Browse AI</div>
+              <div class="text-xs text-slate-500 text-center">n8n + Apify</div>
             </div>
             <div class="flex items-center text-slate-300 text-xl font-thin self-center pb-5">›</div>
 
@@ -453,14 +453,9 @@
         </div>
         <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
           <div class="border border-orange-200 bg-orange-50 rounded-xl p-4">
-            <div class="text-xs font-bold text-orange-500 uppercase tracking-wide mb-1">Data Collection · Source 1</div>
+            <div class="text-xs font-bold text-orange-500 uppercase tracking-wide mb-1">Data Collection</div>
             <div class="font-semibold text-slate-800 text-sm">Apify — Google Maps Scraper</div>
             <div class="text-xs text-slate-500 mt-1">actor: compass/crawler-google-places</div>
-          </div>
-          <div class="border border-orange-200 bg-orange-50 rounded-xl p-4">
-            <div class="text-xs font-bold text-orange-500 uppercase tracking-wide mb-1">Data Collection · Source 2</div>
-            <div class="font-semibold text-slate-800 text-sm">Browse AI — Eatigo Scraper</div>
-            <div class="text-xs text-slate-500 mt-1">robot: 019e876d-02ab-788e-bd15-7714f444beb4</div>
           </div>
           <div class="border border-orange-200 bg-orange-50 rounded-xl p-4">
             <div class="text-xs font-bold text-orange-500 uppercase tracking-wide mb-1">Data Storage</div>
@@ -470,13 +465,13 @@
           <div class="border border-orange-200 bg-orange-50 rounded-xl p-4">
             <div class="text-xs font-bold text-orange-500 uppercase tracking-wide mb-1">AI Analysis</div>
             <div class="font-semibold text-slate-800 text-sm">Claude + Gemini API</div>
-            <div class="text-xs text-slate-500 mt-1">Claude: Clean / Scoring / Insight<br/>Gemini: Predict price + ai_summary</div>
+            <div class="text-xs text-slate-500 mt-1">Claude: Clean / Scoring / Insight<br/>Gemini: ai_summary</div>
           </div>
           <div class="border border-orange-200 bg-orange-50 rounded-xl p-4">
             <div class="text-xs font-bold text-orange-500 uppercase tracking-wide mb-1">Automation</div>
             <div class="font-semibold text-slate-800 text-sm">n8n + Apps Script</div>
             <div class="text-xs text-slate-500 mt-1 leading-relaxed">
-              <strong>Flow:</strong> Apify + Browse AI → raw_[area] → Clean &amp; Score → data_[area] → Gemini → live_[area]_v2 → fixArea() → Email
+              <strong>Flow:</strong> Apify → raw_[area] → Clean &amp; Score → data_[area] → Gemini → live_[area]_v2 → Email
               <br/><br/>
               <strong>HTML ←</strong> data_[area] (Top 10 / Comparison) + live_[area]_v2 (Live Top 3 + ai_summary)
             </div>
@@ -1146,7 +1141,7 @@
 
   <footer class="max-w-5xl mx-auto px-4 py-8 text-center text-xs text-slate-400">
     <p>AI Food Assistant · 5 ย่าน (Asoke · Thonglor · Ari · Siam · Phrom Phong) · Scoring: 6 criteria 100 pts</p>
-    <p class="mt-1">Tools: Apify · Browse AI · Google Sheets · Claude AI · Gemini API · n8n · Netlify</p>
+    <p class="mt-1">Tools: Apify · Google Sheets · Claude AI · Gemini API · n8n · Netlify</p>
     <p class="mt-1">Submission Deadline: June 8, 2026 · napatra.ari@gmail.com</p>
   </footer>
 
@@ -1665,7 +1660,13 @@
                     + '<span class="font-semibold text-slate-700">Best for: </span>'+r.bestFor+'</div>'
                   : '')
               + (r.tradeoff
-                  ? '<div class="mt-2 text-xs text-slate-500 italic">Trade-off: '+r.tradeoff+'</div>'
+                  ? '<div class="mt-3 rounded-lg p-2.5" style="background:#fffbeb;border-left:3px solid #f59e0b">'
+                    + '<div class="flex items-center gap-1.5 mb-1">'
+                    +   '<span class="text-sm">💡</span>'
+                    +   '<span class="text-xs font-bold" style="color:#b45309">ข้อสังเกต / Trade-off</span>'
+                    + '</div>'
+                    + '<p class="text-xs leading-relaxed" style="color:#78350f">' + r.tradeoff + '</p>'
+                    + '</div>'
                   : '')
               + '</div>';
           }).join('')
@@ -1677,38 +1678,108 @@
     var scrapeCountdownInterval = null;
     var scrapePollInterval = null;
 
-    // ── Reload with retry: ถ้าได้ข้อมูลเก่า (CDN cache) วนลองได้ถึง 60 วินาที ──
+    // ── Silent fetchers: ดึงข้อมูลโดยไม่ render (ใช้ใน reloadAfterScrape) ──
+    async function fetchLiveDataRaw(area) {
+      try {
+        var res = await fetchNoCache(LIVE_URLS[area]);
+        if (!res.ok) return null;
+        var text = await res.text();
+        var lines = text.trim().split('\n').filter(function(l) { return l.trim(); });
+        if (lines.length < 2) return null;
+        var headers = parseCSVRow(lines[0]).map(function(h) { return h.replace(/^"|"$/g,'').trim(); });
+        var arr = [];
+        for (var i = 1; i < lines.length; i++) {
+          var vals = parseCSVRow(lines[i]);
+          var obj = {};
+          headers.forEach(function(h, idx) { obj[h] = (vals[idx]||'').replace(/^"|"$/g,'').trim(); });
+          if (obj.name && /^\d+$/.test((obj.rank || '').trim())) arr.push(obj);
+        }
+        return arr;
+      } catch(e) { return null; }
+    }
+
+    async function fetchAreaDataRaw(area) {
+      try {
+        var res = await fetchNoCache(DATA_URLS[area]);
+        if (!res.ok) return null;
+        var text = await res.text();
+        var lines = text.trim().split('\n').filter(function(l) { return l.trim(); });
+        if (lines.length < 2) return null;
+        var headers = parseCSVRow(lines[0]).map(function(h) { return h.replace(/^"|"$/g,'').trim(); });
+        var arr = [];
+        for (var i = 1; i < lines.length; i++) {
+          var vals = parseCSVRow(lines[i]);
+          var obj = {};
+          headers.forEach(function(h, idx) { obj[h] = (vals[idx]||'').replace(/^"|"$/g,'').trim(); });
+          if (obj.name) arr.push(obj);
+        }
+        return arr;
+      } catch(e) { return null; }
+    }
+
+    // ── Reload with retry: commit-when-both-fresh ──
+    // ดึงทั้ง LIVE + DATA แบบเงียบ ๆ → เช็คว่า sync แล้วค่อย render พร้อมกัน
     async function reloadAfterScrape(scrapingArea, expectedLastUpdated) {
       if (currentArea !== scrapingArea) return;
 
-      // Initial wait 3 วินาที — รอ Google CDN propagate cache update ระหว่าง edges
+      // Initial wait 3 วินาที — รอ Google CDN propagate
       await new Promise(function(r) { setTimeout(r, 3000); });
 
-      var maxAttempts = 12;       // 12 รอบ × 5 วินาที = ~60 วินาที window
+      var maxAttempts = 12;       // 12 รอบ × 5 วิ = ~60 วิ window
       var intervalMs = 5000;
 
       for (var i = 0; i < maxAttempts; i++) {
-        // ถ้าผู้ใช้สลับไปย่านอื่นกลางคัน → หยุด retry
         if (currentArea !== scrapingArea) {
           console.log('[reload] user switched area, abort');
           return;
         }
 
-        await loadSheetsData();
-        await loadAreaData();
+        // Fetch ทั้ง LIVE + DATA พร้อมกัน แบบไม่ render
+        var results = await Promise.all([
+          fetchLiveDataRaw(scrapingArea),
+          fetchAreaDataRaw(scrapingArea)
+        ]);
+        var newLive = results[0];
+        var newData = results[1];
 
-        var got = (restaurants[0] && restaurants[0].last_updated) || '';
-        if (got === expectedLastUpdated) {
-          console.log('[reload] success on attempt', i + 1, '(' + ((i + 1) * intervalMs / 1000) + 's after detect)');
-          return;
+        if (newLive && newLive.length && newData && newData.length) {
+          var liveTs = (newLive[0] && newLive[0].last_updated) || '';
+          var liveTop1Name = (newLive[0] && newLive[0].name) || '';
+
+          // Sync check: Top 1 ใน LIVE ต้องตรงกับ Top 1 (sort by totalScore desc) ใน DATA
+          var sortedData = newData.slice().sort(function(a, b) {
+            return (parseFloat(b.totalScore) || 0) - (parseFloat(a.totalScore) || 0);
+          });
+          var dataTop1Name = (sortedData[0] && sortedData[0].name) || '';
+
+          var liveFresh = liveTs === expectedLastUpdated;
+          var inSync = dataTop1Name !== '' && dataTop1Name === liveTop1Name;
+
+          if (liveFresh && inSync) {
+            // ✅ ทั้ง LIVE + DATA fresh + sync → commit + render ทุก section พร้อมกัน
+            restaurants = newLive;
+            areaData = newData;
+            renderLiveCards();
+            updateTimestamp();
+            renderTop10();
+            renderTop3Cards();
+            renderComparison();
+            console.log('[reload] ✅ success on attempt', i + 1,
+              '(~' + ((3000 + i * intervalMs) / 1000) + 's after detect)');
+            return;
+          } else {
+            console.log('[reload] not in sync — liveFresh=' + liveFresh + ', inSync=' + inSync,
+              '(attempt ' + (i + 1) + ')');
+          }
+        } else {
+          console.log('[reload] fetch failed or empty (attempt ' + (i + 1) + ')');
         }
 
         if (i < maxAttempts - 1) {
-          console.log('[reload] CDN still serves old data, retry in', intervalMs / 1000 + 's (attempt', i + 1, '/', maxAttempts + ')');
           await new Promise(function(r) { setTimeout(r, intervalMs); });
         }
       }
-      console.warn('[reload] gave up after', maxAttempts, 'attempts (~60s)');
+      console.warn('[reload] gave up after', maxAttempts, 'attempts (~60s+)');
     }
 
     // ── Toast notification ──
