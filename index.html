@@ -1677,24 +1677,38 @@
     var scrapeCountdownInterval = null;
     var scrapePollInterval = null;
 
-    // ── Reload with retry: ถ้าได้ข้อมูลเก่า (CDN cache) ลองอีก 2 รอบ ──
+    // ── Reload with retry: ถ้าได้ข้อมูลเก่า (CDN cache) วนลองได้ถึง 60 วินาที ──
     async function reloadAfterScrape(scrapingArea, expectedLastUpdated) {
       if (currentArea !== scrapingArea) return;
-      var maxAttempts = 3;
+
+      // Initial wait 3 วินาที — รอ Google CDN propagate cache update ระหว่าง edges
+      await new Promise(function(r) { setTimeout(r, 3000); });
+
+      var maxAttempts = 12;       // 12 รอบ × 5 วินาที = ~60 วินาที window
+      var intervalMs = 5000;
+
       for (var i = 0; i < maxAttempts; i++) {
-        await loadSheetsData();
-        await loadAreaData();
-        var got = (restaurants[0] && restaurants[0].last_updated) || '';
-        if (got === expectedLastUpdated) {
-          console.log('[reload] success on attempt', i + 1);
+        // ถ้าผู้ใช้สลับไปย่านอื่นกลางคัน → หยุด retry
+        if (currentArea !== scrapingArea) {
+          console.log('[reload] user switched area, abort');
           return;
         }
+
+        await loadSheetsData();
+        await loadAreaData();
+
+        var got = (restaurants[0] && restaurants[0].last_updated) || '';
+        if (got === expectedLastUpdated) {
+          console.log('[reload] success on attempt', i + 1, '(' + ((i + 1) * intervalMs / 1000) + 's after detect)');
+          return;
+        }
+
         if (i < maxAttempts - 1) {
-          console.log('[reload] still old data, retry in 2s (attempt', i + 1, ')');
-          await new Promise(function(r) { setTimeout(r, 2000); });
+          console.log('[reload] CDN still serves old data, retry in', intervalMs / 1000 + 's (attempt', i + 1, '/', maxAttempts + ')');
+          await new Promise(function(r) { setTimeout(r, intervalMs); });
         }
       }
-      console.warn('[reload] gave up after', maxAttempts, 'attempts');
+      console.warn('[reload] gave up after', maxAttempts, 'attempts (~60s)');
     }
 
     // ── Toast notification ──
