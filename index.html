@@ -1801,9 +1801,9 @@
         }
       }, 1000);
 
-      // ── Grace period: รอ 60 วินาทีก่อนเริ่ม poll ──
+      // ── Grace period: รอ 30 วินาทีก่อนเริ่ม poll ──
       // n8n ปกติใช้ 4-5 นาที จึงไม่กระทบ — ป้องกันการ detect ค่าเก่าผิดพลาด
-      var GRACE_PERIOD_MS = 60 * 1000;
+      var GRACE_PERIOD_MS = 30 * 1000;
 
       // ── Baseline flag: ถ้า prevLastUpdated ว่างตอนเริ่ม จะใช้ค่า poll แรกเป็น baseline ──
       var needsBaseline = !prevLastUpdated;
@@ -1924,10 +1924,10 @@
         } catch(e) {}
       };
 
-      // ── เริ่ม poll หลัง grace period (60 วิ) แล้วทำซ้ำทุก 30 วิ ──
+      // ── เริ่ม poll หลัง grace period (30 วิ) แล้วทำซ้ำทุก 15 วิ ──
       setTimeout(function() {
         pollFn(); // poll ทันทีหลังหมด grace period
-        scrapePollInterval = setInterval(pollFn, 30000);
+        scrapePollInterval = setInterval(pollFn, 15000);
       }, GRACE_PERIOD_MS);
     }
 
