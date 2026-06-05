@@ -1175,6 +1175,18 @@
     let areaData = [];    // Top 10 for sections 7,8,9
     let currentArea = 'asoke';
 
+    // ─── Fetch helper: bypass browser + CDN cache aggressively ───
+    function bustCache(url) {
+      var sep = url.indexOf('?') >= 0 ? '&' : '?';
+      return url + sep + 't=' + Date.now() + '&r=' + Math.random().toString(36).slice(2, 10);
+    }
+    function fetchNoCache(url) {
+      return fetch(bustCache(url), {
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' }
+      });
+    }
+
     // Parse CSV with proper handling of quoted fields containing commas
     function parseCSVRow(line) {
       var result = [];
@@ -1192,8 +1204,7 @@
 
     async function loadSheetsData() {
       try {
-        var url = LIVE_URLS[currentArea] + '&t=' + Date.now();
-        var res = await fetch(url);
+        var res = await fetchNoCache(LIVE_URLS[currentArea]);
         if (!res.ok) throw new Error('HTTP ' + res.status);
         var text = await res.text();
         var lines = text.trim().split('\n').filter(function(l) { return l.trim(); });
@@ -1451,9 +1462,8 @@
     }
 
     async function loadAreaData() {
-      var url = DATA_URLS[currentArea] + '&t=' + Date.now();
       try {
-        var res = await fetch(url);
+        var res = await fetchNoCache(DATA_URLS[currentArea]);
         if (!res.ok) throw new Error('HTTP ' + res.status);
         var text = await res.text();
         var lines = text.trim().split('\n').filter(function(l) { return l.trim(); });
@@ -1667,6 +1677,26 @@
     var scrapeCountdownInterval = null;
     var scrapePollInterval = null;
 
+    // ── Reload with retry: ถ้าได้ข้อมูลเก่า (CDN cache) ลองอีก 2 รอบ ──
+    async function reloadAfterScrape(scrapingArea, expectedLastUpdated) {
+      if (currentArea !== scrapingArea) return;
+      var maxAttempts = 3;
+      for (var i = 0; i < maxAttempts; i++) {
+        await loadSheetsData();
+        await loadAreaData();
+        var got = (restaurants[0] && restaurants[0].last_updated) || '';
+        if (got === expectedLastUpdated) {
+          console.log('[reload] success on attempt', i + 1);
+          return;
+        }
+        if (i < maxAttempts - 1) {
+          console.log('[reload] still old data, retry in 2s (attempt', i + 1, ')');
+          await new Promise(function(r) { setTimeout(r, 2000); });
+        }
+      }
+      console.warn('[reload] gave up after', maxAttempts, 'attempts');
+    }
+
     // ── Toast notification ──
     // options: { actionLabel, onAction, duration } (ทุก field optional)
     function showToast(title, msg, options) {
@@ -1741,7 +1771,7 @@
       // อ่าน last_updated ของ scrapingArea ก่อนเริ่ม (สด ๆ จาก sheet เพื่อความถูกต้อง)
       var prevLastUpdated = '';
       try {
-        var preRes = await fetch(LIVE_URLS[scrapingArea] + '&t=' + Date.now());
+        var preRes = await fetchNoCache(LIVE_URLS[scrapingArea]);
         if (preRes.ok) {
           var preText = await preRes.text();
           var preLines = preText.trim().split('\n').filter(function(l) { return l.trim(); });
@@ -1813,8 +1843,7 @@
       var pollFn = async function() {
         try {
           // Poll sheet ของ scrapingArea เสมอ — ไม่เปลี่ยนตาม currentArea
-          var url = LIVE_URLS[scrapingArea] + '&t=' + Date.now();
-          var res = await fetch(url);
+          var res = await fetchNoCache(LIVE_URLS[scrapingArea]);
           if (!res.ok) return;
           var text = await res.text();
           var lines = text.trim().split('\n').filter(function(l) { return l.trim(); });
@@ -1842,9 +1871,9 @@
             clearInterval(scrapePollInterval);
 
             // Reload data อัตโนมัติ — เฉพาะถ้า user ยังดูย่านที่ scrape อยู่
+            // ใช้ reloadAfterScrape เพื่อ retry ถ้า CDN ยัง cache ข้อมูลเก่า
             if (currentArea === scrapingArea) {
-              loadSheetsData();
-              loadAreaData();
+              reloadAfterScrape(scrapingArea, newLastUpdated);
             }
 
             // แสดง notification สีเขียว
@@ -1943,7 +1972,7 @@
       var areas = ['asoke','thonglor','ari','siam','phromphong'];
       var counts = await Promise.all(areas.map(async function(area) {
         try {
-          var res = await fetch(DATA_URLS[area] + '&t=' + Date.now());
+          var res = await fetchNoCache(DATA_URLS[area]);
           if (!res.ok) return 0;
           var text = await res.text();
           var lines = text.trim().split('\n').filter(function(l) { return l.trim(); });
