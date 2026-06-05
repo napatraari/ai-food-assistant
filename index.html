@@ -1197,18 +1197,48 @@
       return result;
     }
 
+    // Proper multiline CSV parser — handles quoted cells ที่มี newline ข้างใน (เช่น ai_summary)
+    function parseCSVFull(text) {
+      var rows = [];
+      var row = [];
+      var cur = '';
+      var inQuote = false;
+      var i = 0;
+      while (i < text.length) {
+        var ch = text[i];
+        if (ch === '"') {
+          if (inQuote && text[i + 1] === '"') { cur += '"'; i += 2; continue; } // escaped ""
+          inQuote = !inQuote;
+          i++; continue;
+        }
+        if (ch === ',' && !inQuote) {
+          row.push(cur); cur = ''; i++; continue;
+        }
+        if ((ch === '\r' || ch === '\n') && !inQuote) {
+          if (ch === '\r' && text[i + 1] === '\n') i++; // CRLF
+          row.push(cur); cur = '';
+          if (row.some(function(c) { return c.trim(); })) rows.push(row);
+          row = []; i++; continue;
+        }
+        cur += ch; i++;
+      }
+      if (cur || row.length) { row.push(cur); if (row.some(function(c){return c.trim();})) rows.push(row); }
+      return rows;
+    }
+
     async function loadSheetsData() {
       try {
         var res = await fetchNoCache(LIVE_URLS[currentArea]);
         if (!res.ok) throw new Error('HTTP ' + res.status);
         var text = await res.text();
-        var lines = text.trim().split('\n').filter(function(l) { return l.trim(); });
-        if (lines.length < 2) throw new Error('no data rows');
+        // ใช้ parseCSVFull แทน split('\n') เพื่อ handle ai_summary ที่มี newline ข้างใน
+        var allRows = parseCSVFull(text);
+        if (allRows.length < 2) throw new Error('no data rows');
 
-        var headers = parseCSVRow(lines[0]).map(function(h) { return h.replace(/^"|"$/g,'').trim(); });
+        var headers = allRows[0].map(function(h) { return h.replace(/^"|"$/g,'').trim(); });
         restaurants = [];
-        for (var i = 1; i < lines.length; i++) {
-          var vals = parseCSVRow(lines[i]);
+        for (var i = 1; i < allRows.length; i++) {
+          var vals = allRows[i];
           var obj = {};
           headers.forEach(function(h, idx) {
             obj[h] = (vals[idx] || '').replace(/^"|"$/g,'').trim();
@@ -1810,12 +1840,12 @@
         var res = await fetchNoCache(LIVE_URLS[area]);
         if (!res.ok) return null;
         var text = await res.text();
-        var lines = text.trim().split('\n').filter(function(l) { return l.trim(); });
-        if (lines.length < 2) return null;
-        var headers = parseCSVRow(lines[0]).map(function(h) { return h.replace(/^"|"$/g,'').trim(); });
+        var allRows = parseCSVFull(text);
+        if (allRows.length < 2) return null;
+        var headers = allRows[0].map(function(h) { return h.replace(/^"|"$/g,'').trim(); });
         var arr = [];
-        for (var i = 1; i < lines.length; i++) {
-          var vals = parseCSVRow(lines[i]);
+        for (var i = 1; i < allRows.length; i++) {
+          var vals = allRows[i];
           var obj = {};
           headers.forEach(function(h, idx) { obj[h] = (vals[idx]||'').replace(/^"|"$/g,'').trim(); });
           if (obj.name && /^\d+$/.test((obj.rank || '').trim())) arr.push(obj);
