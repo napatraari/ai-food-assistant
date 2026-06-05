@@ -1435,6 +1435,13 @@
         var rectBeforeRender = btn ? btn.getBoundingClientRect() : null;
 
         Promise.all([loadSheetsData(), loadAreaData()]).then(function() {
+          // หลังโหลดเสร็จทั้งคู่ → enrich areaData ด้วย ai_summary จาก live แล้ว re-render
+          // (จำเป็นสำหรับย่านที่ data_[area] ไม่มี tradeoff/bestFor/reason เช่น Thonglor/Ari/Siam/Phromphong)
+          try {
+            enrichFromAISummary();
+            renderTop3Cards();
+            renderComparison();
+          } catch (e) { console.warn('enrich failed:', e.message); }
           // ชดเชยตำแหน่งซ้ำเป็นเวลา 600ms เพื่อจับ async re-renders
           var startTime = Date.now();
           var restoreLoop = function() {
@@ -1556,6 +1563,83 @@
           +(r.tradeoff?'<div class="bg-white border '+c.tradeBorder+' rounded-lg p-2 text-xs"><span class="font-semibold text-slate-600">⚠ Trade-off: </span><span class="text-slate-500">'+r.tradeoff+'</span></div>':'')
           +'</div>';
       }).join('');
+    }
+
+    // ── Parse ai_summary จาก live_[area]_v2 → inject tradeoff/bestFor/reason ลง areaData ──
+    // ใช้สำหรับย่านที่ data_[area] ไม่มี column tradeoff/bestFor/reason populated (Thonglor/Ari/Siam/Phromphong)
+    function enrichFromAISummary() {
+      if (!restaurants || !restaurants.length || !areaData || !areaData.length) return;
+      var summary = '';
+      for (var k = 0; k < restaurants.length; k++) {
+        if (restaurants[k] && restaurants[k].ai_summary) { summary = restaurants[k].ai_summary; break; }
+      }
+      if (!summary) return;
+
+      // Step 1: แยกแต่ละ section ของร้าน "1. **Name (...)**\n  body...\n2. **Name..." จนถึง "**Trade-off"
+      var perResto = []; // [{name, reason, bestFor}, ...]
+      var sectionRe = /(\d+)\.\s+\*\*([^*\n]+?)\s*\([^)]*\)\s*\*\*([\s\S]*?)(?=\n\s*\d+\.\s+\*\*|\n\s*\*\*\s*Trade|$)/g;
+      var sm;
+      while ((sm = sectionRe.exec(summary)) !== null) {
+        var rname = (sm[2] || '').trim();
+        var body = sm[3] || '';
+        var rsn = '', bf = '';
+        var rm = body.match(/\*\*\s*ความเหมาะสม[:：]?\s*\*\*\s*([^\n]+)/);
+        if (rm) rsn = rm[1].replace(/\*+/g,'').trim();
+        var bm = body.match(/\*\*\s*Best[-\s]?for[^*\n]*?[:：]?\s*\*\*\s*([^\n]+)/i);
+        if (bm) bf = bm[1].replace(/\*+/g,'').trim();
+        perResto.push({ name: rname, reason: rsn, bestFor: bf });
+      }
+
+      // Step 2: ดึง Trade-off block (text หลัง "**Trade-off ...**" จนจบ)
+      var tradeBlock = '';
+      var tm = summary.match(/\*\*\s*Trade[-\s]?off[^*\n]*?\*\*\s*([\s\S]+)$/i);
+      if (tm) tradeBlock = tm[1].trim();
+
+      // helper: ดึง bullet ที่กล่าวถึงชื่อร้าน (เทียบด้วย first significant word)
+      function firstWord(name) {
+        var parts = (name || '').split(/[\s\-–—]+/).filter(function(w) { return w.length >= 2; });
+        return parts[0] || '';
+      }
+      function extractTradeForName(fullName) {
+        if (!tradeBlock) return '';
+        var fw = firstWord(fullName);
+        if (!fw) return '';
+        // แยก bullet ด้วย "* " หรือ "*   " ที่ขึ้นบรรทัดใหม่
+        var bullets = tradeBlock.split(/\n\s*\*\s+/).map(function(b){return b.trim();}).filter(function(b){return b;});
+        var matched = bullets.filter(function(b) { return b.indexOf(fw) !== -1; });
+        if (!matched.length) return '';
+        // ทำความสะอาด markdown bold
+        return matched.map(function(b) { return b.replace(/\*\*/g, '').replace(/\s+/g,' ').trim(); }).join(' • ');
+      }
+
+      // Step 3: match กับ areaData by name (substring both directions) แล้ว fill ฟิลด์ที่ว่าง
+      perResto.forEach(function(info) {
+        if (!info.name) return;
+        var fw = firstWord(info.name);
+        var target = null;
+        for (var i = 0; i < areaData.length; i++) {
+          var an = areaData[i].name || '';
+          if (an === info.name) { target = areaData[i]; break; }
+        }
+        if (!target) {
+          for (var j = 0; j < areaData.length; j++) {
+            var an2 = areaData[j].name || '';
+            if (an2 && (an2.indexOf(info.name) !== -1 || info.name.indexOf(an2) !== -1)) { target = areaData[j]; break; }
+          }
+        }
+        if (!target && fw) {
+          for (var p = 0; p < areaData.length; p++) {
+            if ((areaData[p].name || '').indexOf(fw) !== -1) { target = areaData[p]; break; }
+          }
+        }
+        if (!target) return;
+        if (!target.reason && info.reason) target.reason = info.reason;
+        if (!target.bestFor && info.bestFor) target.bestFor = info.bestFor;
+        if (!target.tradeoff) {
+          var tt = extractTradeForName(target.name);
+          if (tt) target.tradeoff = tt;
+        }
+      });
     }
 
     function renderComparison() {
@@ -1759,6 +1843,7 @@
             // ✅ ทั้ง LIVE + DATA fresh + sync → commit + render ทุก section พร้อมกัน
             restaurants = newLive;
             areaData = newData;
+            try { enrichFromAISummary(); } catch (e) { console.warn('enrich failed:', e.message); }
             renderLiveCards();
             updateTimestamp();
             renderTop10();
